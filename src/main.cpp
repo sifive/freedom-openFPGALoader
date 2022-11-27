@@ -26,6 +26,9 @@
 #include "ftdispi.hpp"
 #include "gowin.hpp"
 #include "ice40.hpp"
+#if ENABLE_ICEVWIRELESS
+#include "iceVWireless.hpp"
+#endif
 #include "lattice.hpp"
 #include "libusb_ll.hpp"
 #include "jtag.hpp"
@@ -62,6 +65,7 @@ struct arguments {
 	bool is_list_command;
 	bool spi;
 	bool dfu;
+	bool iceVWireless;
 	string file_type;
 	string fpga_part;
 	string probe_firmware;
@@ -106,7 +110,9 @@ int main(int argc, char **argv)
 	/* command line args. */
 	struct arguments args = {0, false, false, false, false, 0, "", "", "-", "", -1,
 			0, false, "-", false, false, false, false, Device::PRG_NONE, false,
-			false, false, "", "", "", -1, 0, false, -1,
+			/* SPI, DFU, iceVWireless */
+			false, false, false,
+			"", "", "", -1, 0, false, -1,
 			/* vid, pid, index bus_addr, device_addr */
 			    0,   0,   -1,     0,         0,
 			"127.0.0.1", 0, false, false, "", false, false,
@@ -412,6 +418,17 @@ int main(int argc, char **argv)
 	/* ------------------- */
 	if (args.xvc) {
 		return run_xvc_server(args, cable, &pins_config);
+	}
+#endif
+
+#ifdef ENABLE_ICEVWIRELESS
+	/* ------------------- */
+	/*  iCE V Wireless     */
+	/* ------------------- */
+	if (args.iceVWireless) {
+		IceV_Wireless ice(args.device, args.bit_file, args.prg_type);
+		ice.program();
+		return EXIT_SUCCESS;
 	}
 #endif
 
@@ -726,6 +743,10 @@ int parse_opt(int argc, char **argv, struct arguments *args,
 			("freq",        "jtag frequency (Hz)", cxxopts::value<string>(freqo))
 			("f,write-flash",
 				"write bitstream in flash (default: false)")
+#if ENABLE_ICEVWIRELESS
+			("iceV_wireless", "iceV wireless protocol",
+				cxxopts::value<bool>(args->iceVWireless))
+#endif
 			("index-chain",  "device index in JTAG-chain",
 				cxxopts::value<int>(args->index_chain))
 			("ip", "IP address (only for XVC client)",
